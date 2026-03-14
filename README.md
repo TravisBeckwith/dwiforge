@@ -1,5 +1,5 @@
 # Integrated DTI Processing Pipeline
-### `ML_v8_beta.sh` — v1.4-ml-enhanced
+### `ML_v9_beta.sh` — v1.4-ml-enhanced
 
 A comprehensive, single-script Bash pipeline for diffusion tensor imaging (DTI) processing, structural connectivity analysis, and microstructure modeling. Designed for BIDS-formatted datasets on Linux/WSL2 with support for multi-drive storage layouts.
 
