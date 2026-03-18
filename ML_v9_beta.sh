@@ -64,12 +64,12 @@ set -euo pipefail
 #   STORAGE_LARGE="/archive/study01"
 #
 # You can also pass these on the command line instead:
-#   ./ML_v8_beta.sh -b /path/to/BIDS --storage-fast /path --storage-large /path
+#   ./ML_v9_beta.sh -b /path/to/BIDS --storage-fast /path --storage-large /path
 # ============================================================================
 
-USER_BIDS_DIR="/mnt/c/CLS/CLS_125/BIDS"          # <-- EDIT: Path to your BIDS directory
-USER_STORAGE_FAST="/mnt/e/CLS"      # <-- EDIT: Fast SSD for pipeline outputs
-USER_STORAGE_LARGE="/mnt/f/CLS"     # <-- EDIT: Large drive for FreeSurfer outputs
+USER_BIDS_DIR="/path/to/BIDS"          # <-- EDIT: Path to your BIDS directory
+USER_STORAGE_FAST="/path/to/SSD"      # <-- EDIT: Fast SSD for pipeline outputs
+USER_STORAGE_LARGE="/path/to/large/drive"     # <-- EDIT: Large drive for FreeSurfer outputs
 
 # ============================================================================
 # END OF USER CONFIGURATION
