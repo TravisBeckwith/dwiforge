@@ -67,9 +67,9 @@ set -euo pipefail
 #   ./dwiforge.sh -b /path/to/BIDS --storage-fast /path --storage-large /path
 # ============================================================================
 
-USER_BIDS_DIR="/mnt/c/CLS/CLS_125/BIDS"          # <-- EDIT: Path to your BIDS directory
-USER_STORAGE_FAST="/mnt/e/CLS"      # <-- EDIT: Fast SSD for pipeline outputs
-USER_STORAGE_LARGE="/mnt/f/CLS"     # <-- EDIT: Large drive for FreeSurfer outputs
+USER_BIDS_DIR="/mnt/c/BIDS"          # <-- EDIT: Path to your BIDS directory
+USER_STORAGE_FAST="/mnt/e/"      # <-- EDIT: Fast SSD for pipeline outputs
+USER_STORAGE_LARGE="/mnt/f/"     # <-- EDIT: Large drive for FreeSurfer outputs
 
 # ============================================================================
 # END OF USER CONFIGURATION
