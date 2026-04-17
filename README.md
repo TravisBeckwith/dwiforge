@@ -3,6 +3,8 @@
 
 A comprehensive, single-script Bash pipeline for diffusion tensor imaging (DTI) processing, structural connectivity analysis, and microstructure modeling. Designed for BIDS-formatted datasets on Linux/WSL2 with support for multi-drive storage layouts.
 
+*Note* New iteration under construction due to changes being made to VoxelMorph
+
 ---
 
 ## Features
