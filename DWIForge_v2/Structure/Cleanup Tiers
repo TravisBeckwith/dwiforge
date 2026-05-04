@@ -1,0 +1,14 @@
+--cleanup tier1      Remove tmp/ and raw .mif intermediates only
+                     Frees the most space with least risk
+                     Safe to run while pipeline is still processing
+                     other subjects
+
+--cleanup tier2      tier1 + eddy/bias/registration intermediates
+                     Keeps dwi_final.* and all outputs intact
+                     Good default after QC passes
+
+--cleanup tier3      tier2 + raw tractograms (keeps SIFT-filtered only)
+                     Only safe after connectomes are confirmed good
+
+--cleanup all        Everything in DIR_WORK except checkpoints
+                     Nuclear option — reprocessing requires full rerun

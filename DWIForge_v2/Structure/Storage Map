@@ -1,0 +1,67 @@
+DIR_SOURCE      (read-only, never written to)
+├── sub-*/dwi/*.nii.gz          raw DWI
+├── sub-*/anat/*.nii.gz         raw T1w
+└── sub-*/dwi/*.bvec *.bval     gradient tables
+
+DIR_WORK        (fast SSD — highest I/O pressure)
+└── sub-*/
+    ├── dwi/
+    │   ├── *.mif               MRtrix intermediates    TIER 1 cleanup
+    │   ├── dwi_denoised.*      after Patch2Self/MP-PCA TIER 1 cleanup
+    │   ├── dwi_degibbs.*       after Gibbs             TIER 1 cleanup
+    │   ├── dwi_eddy.*          eddy outputs            TIER 2 cleanup
+    │   ├── dwi_biascorr.*      bias corrected          TIER 2 cleanup
+    │   └── dwi_final.*         input to fitting        KEEP
+    ├── anat/
+    │   ├── T1w_brain.*         BET output              TIER 2 cleanup
+    │   └── T1w_reg.*           registration to DWI     TIER 2 cleanup
+    ├── reg/
+    │   ├── dwi_registration.*  motion correction       TIER 2 cleanup
+    │   └── field_maps.*        topup output            TIER 2 cleanup
+    ├── tmp/                    scratch space            TIER 1 cleanup
+    └── checkpoints/
+        ├── 01_preprocessing.done
+        ├── 02_registration.done
+        └── ...                 stage markers           KEEP until rerun
+
+DIR_OUTPUT      (external A — results storage)
+└── sub-*/
+    ├── dti/
+    │   ├── *_fa.nii.gz
+    │   ├── *_md.nii.gz
+    │   ├── *_ad.nii.gz
+    │   ├── *_rd.nii.gz
+    │   └── *_v1.nii.gz         principal eigenvector
+    ├── noddi/
+    │   ├── *_ndi.nii.gz        neurite density
+    │   ├── *_odi.nii.gz        orientation dispersion
+    │   └── *_fwf.nii.gz        free water fraction
+    ├── tracts/
+    │   ├── *.tck               tractograms             TIER 3 cleanup
+    │   └── *_sift.tck          SIFT filtered           TIER 3 cleanup
+    └── connectomes/
+        └── *_connectome_*.csv
+
+DIR_FREESURFER  (external B — large, permanent)
+└── sub-*/
+    └── ...                     full recon-all tree     NEVER cleanup
+
+DIR_LOGS        (external A — small, permanent)
+└── sub-*/
+    ├── 01_preprocessing.log
+    ├── 02_registration.log
+    ├── 03_refinement.log
+    ├── 04_tensor_fitting.log
+    ├── 05_noddi.log
+    ├── 06_connectivity.log
+    ├── 07_qc_report.log
+    └── dwi_registration.log    Python script output
+    pipeline.log                orchestrator-level log
+    pipeline_final_report.txt
+
+DIR_QC          (external A — shareable results)
+└── sub-*/
+    ├── *_qc.txt                per-subject metrics
+    ├── *_fa_snapshot.png       visual QC images
+    └── *_registration_report.txt
+    pipeline_summary.html       full cohort HTML report

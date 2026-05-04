@@ -1,0 +1,2 @@
+DIR_WORK/sub-001/                    ← local mode
+DIR_WORK/sub-001/job-${SLURM_JOB_ID}/  ← SLURM worker mode

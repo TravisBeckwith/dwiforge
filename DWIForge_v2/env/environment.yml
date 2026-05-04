@@ -1,0 +1,70 @@
+# dwiforge — Conda environment specification
+# Generated: 2026-04-04
+# Update this file as new stages are implemented.
+#
+# Create environment:
+#   conda env create -f environment.yml
+#
+# Update existing environment:
+#   conda env update -f environment.yml --prune
+#
+# Activate:
+#   conda activate dwiforge
+#
+# Notes:
+#   - FSL, MRtrix3, FreeSurfer, ANTs are system installs — not conda packages.
+#     Install them via their official installers before activating this env.
+#   - PyTorch with CUDA: conda installs CPU-only by default.
+#     For GPU support, install pytorch via the pytorch channel (see below).
+#   - dipy >= 1.12 may need to be pip-installed if conda-forge lags behind.
+
+name: dwiforge
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # ── Python runtime ─────────────────────────────────────────
+  - python>=3.11          # 3.11+ for tomllib stdlib; avoids tomli install
+
+  # ── Core numerics and I/O ───────────────────────────────────
+  - numpy>=1.24
+  - nibabel>=5.0
+  - scipy>=1.10
+  - scikit-learn>=1.3
+  - tqdm>=4.65
+
+  # ── DIPY — denoising ────────────────────────────────────────
+  # IMPORTANT: 1.12.0 minimum (P2S v3 bug fixed in 1.12, PR #3631)
+  # If conda-forge does not yet have 1.12, install via pip (see pip block below)
+  - dipy>=1.12.0
+
+  # ── PyTorch — optional, for full-mode registration ──────────
+  # CPU-only version:
+  # - pytorch>=2.0
+  # - cpuonly
+  #
+  # For CUDA 12.3 (RTX 3070), use the pytorch channel instead:
+  # conda install pytorch torchvision pytorch-cuda=12.3 -c pytorch -c nvidia
+
+  # ── Pending — uncomment as stages are implemented ────────────
+  # - dmri-amico>=2.0     # NODDI (stage 05)
+  # - antspyx>=0.4        # ANTs Python bindings (stage 03)
+  # - fury>=0.10          # DIPY visualisation (stage 07)
+
+  # ── pip fallback for packages not on conda-forge ────────────
+  - pip
+  - pip:
+    # Uncomment if conda-forge dipy lags behind 1.12:
+    # - dipy>=1.12.0
+
+    # Standalone P2S2 (optional — DIPY P2S v3 subsumes it):
+    # - git+https://github.com/ShreyasFadnavis/patch2self2.git
+
+variables:
+  # Suppress noisy TF/Python warnings (pipeline sets these at runtime too)
+  TF_CPP_MIN_LOG_LEVEL: "3"
+  PYTHONWARNINGS: "ignore"
+  PYTHONIOENCODING: "UTF-8"
+  - matplotlib>=3.7

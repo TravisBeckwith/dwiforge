@@ -1,0 +1,243 @@
+# dwiforge.toml — Pipeline Configuration
+# =========================================
+# Only [paths].source is required. All other paths derive from it
+# if not set, following BIDS derivatives conventions.
+#
+# Resolution order for every value:
+#   1. CLI flag (--dir-work, --ml-method, etc.)
+#   2. This file
+#   3. Environment variable (DWIFORGE_DIR_WORK, etc.)
+#   4. Derived default (based on source path)
+#
+# Config file lookup order:
+#   1. --config /explicit/path.toml
+#   2. ./dwiforge.toml  (current working directory)
+#   3. ~/.config/dwiforge/dwiforge.toml
+
+# ---------------------------------------------------------------------------
+# [paths] — Storage locations
+# ---------------------------------------------------------------------------
+# Each location serves a distinct purpose and can point to a different
+# physical device. All can collapse to subdirectories of a single location
+# if space allows (single-drive workstation, HPC project allocation, etc.).
+#
+# Minimum config for a single-drive setup — everything else is derived:
+#   [paths]
+#   source = "/data/myproject/BIDS"
+
+[paths]
+
+# REQUIRED: Root of your BIDS-formatted dataset (read-only during processing)
+source = "/path/to/BIDS"                  # e.g. "/path/to/data"
+
+# Fast storage for processing intermediates.
+# Default: {source}/derivatives/dwiforge/work
+# Recommendation: local SSD. Intermediates can be cleaned up per tier after
+# each subject completes (see [options].cleanup_tier).
+work = "/path/to/work"                    # e.g. "/path/to/data"
+
+# Primary results: DTI/NODDI maps, connectomes, tractograms.
+# Default: {source}/derivatives/dwiforge/outputs
+output = "/path/to/output"                  # e.g. "/path/to/data"
+
+# FreeSurfer recon-all subjects directory.
+# Default: {source}/derivatives/freesurfer
+# Note: recon-all produces ~300MB–1GB per subject.
+freesurfer = "/path/to/freesurfer"              # e.g. "/path/to/data"
+
+# Pipeline operational logs (per-subject, per-stage).
+# Default: {source}/derivatives/dwiforge/logs
+# Kept separate from QC so logs can stay on fast storage while QC reports
+# go to a shared/accessible location.
+logs = "/path/to/logs"                    # e.g. "/path/to/data"
+
+# QC reports and visualizations (shareable results).
+# Default: {source}/derivatives/dwiforge/qc
+# HTML cohort summary, per-subject metric files, FA snapshots.
+qc = "/path/to/qc"                      # e.g. "/path/to/data"
+
+# ---------------------------------------------------------------------------
+# [options] — Processing options
+# ---------------------------------------------------------------------------
+
+[options]
+
+# Intermediate file retention.
+# 0 = keep everything (default)
+# 1 = remove tmp/ and raw .mif files only (safest, most space recovered)
+# 2 = tier 1 + eddy/bias/registration intermediates
+# 3 = tier 2 + raw tractograms (keep SIFT-filtered only)
+# 4 = all intermediates in DIR_WORK (reprocessing requires full rerun)
+# Cleanup only runs after a subject completes all requested stages
+# successfully and outputs pass a basic size sanity check.
+cleanup_tier = 0
+
+# ---------------------------------------------------------------------------
+# QC and data thresholds
+# ---------------------------------------------------------------------------
+
+# b-value below which a volume is treated as b0 (applies to all stages)
+b0_threshold = 50
+
+# NODDI direction thresholds.
+# < noddi_min_directions:  NODDI disabled entirely
+# noddi_min..noddi_high-1: NODDI enabled, confidence = "standard"
+# >= noddi_high_directions: NODDI enabled, confidence = "high"
+noddi_min_directions  = 30
+noddi_high_directions = 60
+
+# Run NDC (Neighboring DWI Correlation) quality metric during BIDS QC.
+# Requires DIPY >= 1.10. Adds ~30-60s per subject but flags noisy data early.
+qc_run_ndc = false
+
+# Denoising method (applied in stage 01_preprocessing).
+# "auto"        — best available: P2S v3 (DIPY>=1.12) > P2S v1 > MP-PCA
+# "p2s3"        — DIPY Patch2Self v3 (requires DIPY >= 1.12)
+# "p2s2"        — routes to p2s3 if available, else p2s1
+# "p2s1"        — DIPY Patch2Self v1
+# "mppca"       — MRtrix3 dwidenoise (MP-PCA)
+# "passthrough" — skip denoising (not recommended)
+denoise_method = "auto"
+
+# Regression model for Patch2Self (ignored for MP-PCA).
+# "ols" is recommended; "ridge" is faster for very large datasets.
+denoise_model = "ols"
+
+# Pipeline stages to run. Set false to skip a stage entirely.
+# Skipping a stage does not remove its checkpoint — use --rerun-stage
+# on the CLI to force reprocessing of a completed stage.
+run_qc_bids         = true
+run_preprocessing   = true
+run_registration    = true
+run_refinement      = true
+run_tensor_fitting  = true
+run_noddi           = true
+run_connectivity    = true
+run_qc_report       = true
+
+# ML registration method.
+# "auto"       — use SynthMorph if available, else scipy/PyTorch
+# "synthmorph" — FreeSurfer SynthMorph (requires FreeSurfer 7.3+)
+# "ants"       — enhanced ANTs registration
+ml_method     = "auto"
+
+# Registration mode.
+# true  = fast scipy rigid translation (default, no GPU required)
+# false = full PyTorch dense displacement field (slower, more accurate)
+ml_quick_mode = true
+
+# Use GPU if available (PyTorch CUDA for registration, NODDI fitting).
+use_gpu = true
+
+# Number of OpenMP threads for FSL, MRtrix3, ANTs.
+# 0 = auto-detect (uses all available cores).
+omp_threads = 0
+
+# Minimum free space required on each storage location before starting
+# a subject, in gigabytes. Pipeline aborts the subject if any location
+# is below its threshold.
+min_free_gb_work       = 20
+min_free_gb_output     = 5
+min_free_gb_freesurfer = 10
+
+# Maximum number of subjects to process in parallel (local mode only).
+# 1 = sequential (default, safest for memory-limited systems).
+# N = N subjects simultaneously (each uses omp_threads cores).
+parallel_subjects = 1
+
+# ---------------------------------------------------------------------------
+# [slurm] — HPC job array configuration
+# ---------------------------------------------------------------------------
+# Ignored unless --slurm flag is passed to dwiforge.sh.
+# When --slurm is active, dwiforge.sh generates and submits a SLURM job
+# array (one job per subject) rather than running subjects locally.
+# Each worker job calls: dwiforge.sh --slurm-worker <sub> --config <path>
+
+[slurm]
+
+partition     = "general"
+account       = ""           # leave empty to use cluster default
+mem_gb        = 32
+cpus_per_task = 8
+time_limit    = "12:00:00"   # HH:MM:SS
+
+# Number of jobs allowed to run simultaneously from the array.
+# 0 = no limit (submit all at once).
+max_simultaneous = 0
+
+# Load these modules before running the worker (space-separated string).
+# e.g. modules = "fsl/6.0.7 mrtrix3/3.0.4 freesurfer/7.4.1 cuda/12.3"
+modules = ""
+
+# Path to the Python virtual environment to activate in each worker.
+# Leave empty to rely on the module system or system Python.
+venv_path = ""
+
+# Additional #SBATCH directives to pass verbatim (one per line).
+# e.g. extra_directives = """
+# --constraint=gpu
+# --gres=gpu:1
+# """
+extra_directives = ""
+
+[designer]
+# Path to the designer binary. Empty = auto-detect from ~/.local/bin/designer.
+bin = ""
+
+# Path to directory containing MRtrix3 Python bindings (mrtrix3/ package).
+# Auto-detected from the location of mrconvert if empty.
+# Example: "/home/user/mrtrix3/lib"
+python_path = ""
+
+# Phase encoding direction for FSL eddy.
+# Read from JSON sidecar / .mif header if empty.
+# Accepted values: j, j-, i, i-, k, k-  (or PA, AP, RL, LR, SI, IS)
+pe_dir = ""
+
+# Whether to include b1 field inhomogeneity correction
+b1correct = false
+
+# Normalise DWI to median b0 CSF intensity of 1000
+# (useful when combining multiple acquisitions)
+normalize = false
+
+[runtime]
+# Set to true when running inside the Docker/Apptainer container.
+# The entrypoint.sh sets this automatically — do not set manually.
+# When true, env_setup.sh skips all tool detection and uses pre-configured paths.
+containerized = false
+
+# Override paths for non-standard host installations.
+# Leave empty to use auto-detection (host mode) or container defaults.
+designer_bin        = ""   # e.g. "/home/user/.local/bin/designer"
+designer_python_path = ""  # e.g. "/home/user/mrtrix3/lib"
+deps_dir            = ""   # e.g. "/home/user/.local/share/dwiforge/deps"
+
+[tensor_fitting]
+# Models to fit. DTI always runs.
+# DKI/WDKI: not recommended for single-shell b=1000 (high variance).
+#            Enable with caution — results should be interpreted carefully.
+fit_dki  = false
+fit_wdki = false
+
+# WM mask: use FAST tissue segmentation on T1w to constrain fitting.
+# Set false to fit within brain mask only (faster, less accurate).
+use_wm_mask = true
+
+# FAST WM probability threshold for mask generation (0.0–1.0)
+wm_pve_threshold = 0.5
+
+# b0 → T1w registration DOF. 6 = rigid (recommended after SDC).
+# 12 = full affine (only if SDC was skipped and large distortion remains).
+b0_to_t1w_dof = 6
+
+[freesurfer]
+# Number of threads for recon-all (-openmp).
+# Default is 1 (safe for single-core SLURM allocations).
+# Set to 8-16 to reduce runtime from ~8 hrs to ~2-3 hrs if cores are available.
+# Match this to the cpus-per-task in your SLURM job script.
+threads = 1
+
+# recon-all flags — added verbatim to the recon-all command.
+# Example: "-3T" enables 3T-specific atlas for better segmentation.
+extra_flags = "-3T"

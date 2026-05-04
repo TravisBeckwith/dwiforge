@@ -1,0 +1,6 @@
+DIR_SOURCE       Raw BIDS input              (read-only)
+DIR_WORK         Processing intermediates    (fast I/O, disposable)
+DIR_OUTPUT       DTI/NODDI metrics, tracts   (permanent results)
+DIR_FREESURFER   FreeSurfer subjects dir     (large, permanent)
+DIR_LOGS         Pipeline operational logs   (permanent, small)
+DIR_QC           QC reports, HTML summaries  (permanent, shareable)

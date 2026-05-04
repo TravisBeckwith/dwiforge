@@ -1,0 +1,71 @@
+# dwiforge — Python requirements
+# Generated: 2026-04-04
+# Update this file as new stages are implemented.
+#
+# Install:
+#   pip install -r requirements.txt
+#
+# For GPU support, install PyTorch separately with the correct CUDA index:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu123
+#
+# Sections:
+#   CONFIRMED — used in implemented code
+#   OPTIONAL  — improves functionality, pipeline runs without it
+#   PENDING   — will be required; install now to avoid surprises
+
+# ============================================================
+# CONFIRMED — core data I/O and numerics
+# ============================================================
+numpy>=1.24
+nibabel>=5.0
+scipy>=1.10
+scikit-learn>=1.3
+tqdm>=4.65
+
+# TOML parsing (not needed on Python >= 3.11 — tomllib is stdlib)
+tomli>=2.0; python_version < "3.11"
+
+# ============================================================
+# CONFIRMED — denoising
+# ============================================================
+# IMPORTANT: 1.12.0 minimum — P2S v3 bug fixed in 1.12 (PR #3631)
+# Versions 1.10.x and 1.11.x have a confirmed denoised-volume bug.
+dipy>=1.12.0
+
+# ============================================================
+# OPTIONAL — full-mode dense displacement registration
+# Falls back to scipy rigid registration if absent.
+# Install with CUDA support separately (see header note).
+# ============================================================
+# torch>=2.0
+
+# ============================================================
+# PENDING — NODDI fitting (stage 05_noddi.sh)
+# ============================================================
+# dmri-amico>=2.0
+
+# ============================================================
+# CONFIRMED — ANTs Python bindings (installed by DESIGNER)
+# ============================================================
+# antspyx==0.4.2 is installed as a DESIGNER dependency.
+# Do NOT install separately — version is pinned by DESIGNER.
+# antspyx>=0.4
+
+# ============================================================
+# NOTE — DESIGNER-v2 installs separately into user site-packages
+# ============================================================
+# pip install git+https://github.com/NYU-DiffusionMRI/DESIGNER-v2.git
+#
+# DESIGNER pins dipy==1.9.0 which conflicts with our dipy>=1.12.0.
+# Install dwiforge requirements into a virtualenv BEFORE installing DESIGNER,
+# or into a separate virtualenv from DESIGNER's user site-packages.
+#
+# DESIGNER dependencies (managed by DESIGNER, do not add here):
+#   designer2==2.0.15, dipy==1.9.0, antspyx==0.4.2, nibabel==5.2.1,
+#   numpy==1.26.4, scipy==1.13.1, scikit-learn==1.5.0, PyYAML==6.0.1
+
+# ============================================================
+# OPTIONAL — DIPY visualisation (QC report stage)
+# ============================================================
+# fury>=0.10
+matplotlib>=3.7

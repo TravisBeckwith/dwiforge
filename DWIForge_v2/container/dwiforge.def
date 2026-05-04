@@ -1,0 +1,139 @@
+# dwiforge v2 — Apptainer definition file
+# =============================================================================
+# Use this when building directly on a system with Apptainer installed,
+# without going through Docker.
+#
+# BUILD (requires sudo or fakeroot)
+#   apptainer build --fakeroot dwiforge_2.0.sif container/dwiforge.def
+#
+# For most HPC use, prefer the Docker → Apptainer conversion workflow:
+#   (on local machine with Docker)
+#   docker build -t dwiforge:2.0 -f container/Dockerfile .
+#   docker save dwiforge:2.0 | gzip > dwiforge_2.0.tar.gz
+#   scp dwiforge_2.0.tar.gz hpc:/path/to/images/
+#
+#   (on HPC)
+#   apptainer build dwiforge_2.0.sif docker-archive://dwiforge_2.0.tar.gz
+#
+# RUN ON HPC (Apptainer)
+#   apptainer run \
+#     --bind /data/bids:/data/bids:ro \
+#     --bind /data/output:/data/output \
+#     --bind /scratch:/scratch \
+#     --bind /path/to/license.txt:/opt/freesurfer/license.txt:ro \
+#     --nv \
+#     dwiforge_2.0.sif \
+#     --config /data/bids/dwiforge.toml \
+#     --subject sub-001
+#
+# SLURM EXAMPLE
+#   See container/slurm_example.sh
+#
+# FREESURFER LICENSE
+#   Must be bind-mounted at runtime. Not included in the image.
+# =============================================================================
+
+Bootstrap: docker
+From: nyudiffusionmri/designer:latest
+
+%files
+    # Copy pipeline files into the container during build
+    dwiforge.sh         /opt/dwiforge/dwiforge.sh
+    dwiforge.toml       /opt/dwiforge/dwiforge.toml
+    lib/                /opt/dwiforge/lib/
+    stages/             /opt/dwiforge/stages/
+    python/             /opt/dwiforge/python/
+    scripts/            /opt/dwiforge/scripts/
+    env/                /opt/dwiforge/env/
+    container/entrypoint.sh  /entrypoint.sh
+
+%post
+    # ---- FreeSurfer ----
+    # Pull FreeSurfer 7.4.1 tarball (adjust URL if version changes)
+    FREESURFER_VERSION=7.4.1
+    FREESURFER_URL="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/${FREESURFER_VERSION}/freesurfer_ubuntu22-${FREESURFER_VERSION}_amd64.deb"
+
+    echo "Installing FreeSurfer ${FREESURFER_VERSION}..."
+    apt-get update -qq && apt-get install -y --no-install-recommends wget
+    wget -q "${FREESURFER_URL}" -O /tmp/freesurfer.deb
+    dpkg -i /tmp/freesurfer.deb || apt-get install -f -y
+    rm /tmp/freesurfer.deb
+    apt-get clean
+
+    # ---- Discover build-time paths ----
+    MRTRIX_BIN=$(which mrconvert 2>/dev/null || true)
+    if [ -n "$MRTRIX_BIN" ]; then
+        MRTRIX_ROOT=$(dirname "$(dirname "$MRTRIX_BIN")")
+        if [ -d "${MRTRIX_ROOT}/lib/mrtrix3" ]; then
+            echo "export MRTRIX_PYTHON_PATH=${MRTRIX_ROOT}/lib" >> /etc/dwiforge_env
+        fi
+    fi
+    echo "export DESIGNER_BIN=$(which designer 2>/dev/null || echo '')" >> /etc/dwiforge_env
+    echo "export FSLDIR=${FSLDIR:-/usr/local/fsl}" >> /etc/dwiforge_env
+
+    # ---- dwiforge Python deps ----
+    pip install --target /opt/dwiforge/deps --no-deps \
+        "dipy>=1.12.0" \
+        "nibabel>=5.0" \
+        "numpy>=1.24" \
+        "scipy>=1.10" \
+        "scikit-learn>=1.3" \
+        "tqdm>=4.65"
+
+    # ---- Permissions ----
+    chmod +x /opt/dwiforge/dwiforge.sh
+    chmod +x /opt/dwiforge/stages/*.sh
+    chmod +x /opt/dwiforge/lib/*.sh
+    chmod +x /opt/dwiforge/env/bootstrap_deps.sh
+    chmod +x /entrypoint.sh
+    mkdir -p /scratch
+
+%environment
+    export DWIFORGE_CONTAINERIZED=true
+    export DWIFORGE_DEPS_DIR=/opt/dwiforge/deps
+    export DWIFORGE_ROOT=/opt/dwiforge
+    export FREESURFER_HOME=/opt/freesurfer
+    export FS_LICENSE=/opt/freesurfer/license.txt
+    export PATH=/opt/freesurfer/bin:$PATH
+
+    # Source discovered paths from build time
+    if [ -f /etc/dwiforge_env ]; then
+        . /etc/dwiforge_env
+    fi
+
+%runscript
+    exec /entrypoint.sh "$@"
+
+%labels
+    Author dwiforge
+    Version 2.0
+    Description dwiforge DWI preprocessing pipeline
+
+%help
+    dwiforge v2 — DWI/DTI preprocessing pipeline
+
+    Usage:
+      apptainer run dwiforge_2.0.sif [OPTIONS]
+
+    Required bind mounts:
+      --bind /data/bids:/data/bids:ro           BIDS input directory
+      --bind /data/output:/data/output           Output directory
+      --bind /path/to/license.txt:/opt/freesurfer/license.txt:ro
+
+    Optional:
+      --bind /scratch:/scratch                   Scratch space (default: /scratch)
+      --nv                                       Enable NVIDIA GPU
+
+    Options passed to dwiforge.sh:
+      --config PATH     Path to dwiforge.toml (default: auto-detect)
+      --subject LABEL   Process single subject (e.g. sub-001)
+      --all             Process all subjects in BIDS directory
+      --slurm           Submit as SLURM array job
+
+    Example:
+      apptainer run \
+        --bind /data/bids:/data/bids:ro \
+        --bind /data/output:/data/output \
+        --bind ~/freesurfer_license.txt:/opt/freesurfer/license.txt:ro \
+        --nv \
+        dwiforge_2.0.sif --all --config /data/bids/dwiforge.toml

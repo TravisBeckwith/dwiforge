@@ -1,0 +1,11 @@
+Local mode (default)
+  dwiforge.sh → subject loop → stage functions inline
+
+SLURM submitter mode (--slurm)
+  dwiforge.sh → generates and submits job array
+              → each array task runs dwiforge.sh --slurm-worker $sub
+              → worker runs the same stage scripts, same config
+
+SLURM worker mode (--slurm-worker sub-001)
+  Single subject, all stages, no loop
+  Reads config from TOML, exports paths, runs stages sequentially
