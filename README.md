@@ -1,4 +1,4 @@
-# DWIForge v2
+# DWIForge v2 (Beta 1.0.0)
 
 A modular, checkpoint-based diffusion MRI preprocessing and analysis pipeline for single-shell and multi-shell acquisitions. Designed for any BIDS-compliant dataset.
 
