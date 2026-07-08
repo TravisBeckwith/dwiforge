@@ -19,6 +19,7 @@ A modular, checkpoint-based diffusion MRI preprocessing and analysis pipeline fo
 | 08 | Response Functions | dhollander 3-tissue response estimation |
 | 09 | Tractography | SS3T-CSD FODs → iFOD2 ACT (10M) → SIFT2 → DK84 connectome |
 | 10 | QC Report | Per-subject PDF with slice mosaics, metrics table, connectome matrix |
+| 11 | Connectome Stats | CLR transform of the SIFT2-weighted connectome (compositional-data correction for group-level stats) |
 
 ## Requirements
 
