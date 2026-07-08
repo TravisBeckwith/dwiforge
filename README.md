@@ -98,3 +98,31 @@ touch Work/group/responsemean.done
 - DESIGNER output uses **eddy-rotated bvecs** when building `dwi_preprocessed.mif` — critical for correct tensor orientation
 - Single-shell NODDI (b=1000, ~32 dirs) gives valid but lower-precision estimates vs multi-shell
 - Parcellation is registered from T1w → DWI space before connectome construction
+
+## Citation
+
+If you use DWIForge in your research, please cite the pipeline and the underlying tools:
+
+**DWIForge**
+```
+DWIForge v2 (2026). Zenodo. https://doi.org/10.5281/zenodo.19740322
+```
+
+**Underlying tools** — please also cite the tools that do the work:
+
+| Stage | Tool | Citation |
+|-------|------|----------|
+| 02 | MP-PCA denoising | Veraart et al. (2016) *NeuroImage* 142:394–406 |
+| 02 | Gibbs unringing | Kellner et al. (2016) *MRM* 76(5):1574–1581 |
+| 03 | SynthStrip | Hoopes et al. (2022) *NeuroImage* 260:119474 |
+| 04 | Synb0-DisCo | Schilling et al. (2020) *MRI* 73:186–193 |
+| 05 | DESIGNER2 / eddy | Ades-Aron et al. (2018) *NeuroImage* 183:55–68; Andersson & Sotiropoulos (2016) *NeuroImage* 125:1063–1078 |
+| 06 | Tensor fitting (tmi) | DESIGNER2 — as above |
+| 07 | NODDI | Zhang et al. (2012) *NeuroImage* 61(4):1000–1016 |
+| 07 | AMICO | Daducci et al. (2015) *NeuroImage* 105:517–523 |
+| 08–09 | MRtrix3 | Tournier et al. (2019) *NeuroImage* 202:116137 |
+| 08–09 | SS3T-CSD | Dhollander et al. (2016) ISMRM; Dell'Acqua & Tournier (2019) *NMR Biomed* 32(4):e3997 |
+| 09 | iFOD2 / ACT | Smith et al. (2012) *NeuroImage* 62(3):1924–1938 |
+| 09 | SIFT2 | Smith et al. (2015) *NeuroImage* 119:338–351 |
+| 01, 09 | FreeSurfer | Fischl (2012) *NeuroImage* 62(2):774–781 |
+| 11 | CLR / CoDa | Aitchison (1982) *J. R. Stat. Soc. B* 44(2):139–177; Pawlowsky-Glahn et al. (2015) *Modeling and Analysis of Compositional Data*, Wiley |
