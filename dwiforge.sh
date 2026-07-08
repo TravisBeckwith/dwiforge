@@ -55,8 +55,10 @@ CONFIGURATION
 
 STAGE CONTROL
   --skip-stage <name>       Skip a stage (repeatable).
-                            Names: preprocessing registration refinement
-                                   tensor-fitting noddi connectivity qc-report
+                            Names: qc-bids recon-all preprocessing t1w-prep
+                                   epi-correction designer tensor-fitting noddi
+                                   response-functions tractography qc-report
+                                   connectome-stats
   --only-stage <name>       Run only this stage (repeatable)
   --rerun-stage <name>      Force rerun even if checkpoint exists (repeatable)
   --resume                  Skip subjects/stages with existing checkpoints (default)
@@ -224,6 +226,7 @@ Stages enabled:
   noddi:          ${DWIFORGE_RUN_NODDI}
   connectivity:   ${DWIFORGE_RUN_CONNECTIVITY}
   qc report:      ${DWIFORGE_RUN_QC_REPORT}
+  connectome stats: ${DWIFORGE_RUN_CONNECTOME_STATS:-true}
 
 Runtime:
   GPU available:      ${GPU_AVAILABLE:-unknown}
@@ -297,6 +300,7 @@ declare -A STAGE_SCRIPTS=(
     [response-functions]="stages/08_response_functions.sh"
     [tractography]="stages/09_tractography.sh"
     [qc-report]="stages/10_qc_report.sh"
+    [connectome-stats]="stages/11_connectome_stats.sh"
 )
 STAGE_ORDER=(
     qc-bids
@@ -310,6 +314,7 @@ STAGE_ORDER=(
     response-functions
     tractography
     qc-report
+    connectome-stats
 )
 
 # Map stage name to DWIFORGE_RUN_* config variable
@@ -325,6 +330,7 @@ declare -A STAGE_CONFIG_VAR=(
     [response-functions]="DWIFORGE_RUN_RESPONSE_FUNCTIONS"
     [tractography]="DWIFORGE_RUN_TRACTOGRAPHY"
     [qc-report]="DWIFORGE_RUN_QC_REPORT"
+    [connectome-stats]="DWIFORGE_RUN_CONNECTOME_STATS"
 )
 
 # ---------------------------------------------------------------------------

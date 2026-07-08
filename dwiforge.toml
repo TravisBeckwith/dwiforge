@@ -115,6 +115,27 @@ run_noddi           = true
 run_connectivity    = true
 run_qc_report       = true
 
+# Stage 11: adds a CLR (centred log-ratio) transform of the SIFT2-weighted
+# connectome alongside the raw matrix, for use in group-level statistics
+# (correlation/PCA/regression/group comparisons) where the compositional
+# nature of connectome edge weights matters. Advisory stage — does not
+# block downstream processing if disabled or if it fails.
+run_connectome_stats = true
+
+# Compositional unit for the Stage 11 CLR transform:
+#   "matrix" — treat the whole connectome (unique upper-triangle edges) as
+#              one composition. Preserves symmetry. Recommended default.
+#   "row"    — treat each node's row as its own composition. Result is
+#              asymmetric; use only if downstream models consume node-wise
+#              compositions.
+connectome_stats_mode = "matrix"
+
+# Zero-replacement value for the CLR transform, expressed as a fraction of
+# the smallest observed non-zero edge (multiplicative replacement, which
+# preserves the ratios among observed connections). Must be in (0, 1).
+# 0.5 is a common default; lower it for very sparse matrices.
+connectome_stats_delta_frac = 0.5
+
 # ML registration method.
 # "auto"       — use SynthMorph if available, else scipy/PyTorch
 # "synthmorph" — FreeSurfer SynthMorph (requires FreeSurfer 7.3+)
