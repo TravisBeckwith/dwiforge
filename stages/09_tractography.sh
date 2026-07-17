@@ -77,8 +77,12 @@ RESPONSEMEAN_DONE="${GROUP_DIR}/responsemean.done"
 if [[ ! -f "$RESPONSEMEAN_DONE" ]]; then
     _log ERROR "responsemean.done not found: ${RESPONSEMEAN_DONE}"
     _log ERROR "All subjects must complete stage 08 before stage 09 can run"
-    _log ERROR "In SLURM mode: submit responsemean as a dependency job first"
-    _log ERROR "In local mode:  set DWIFORGE_LAST_SUBJECT=true on final subject"
+    _log ERROR "In SLURM mode: run responsemean as a dependency job after all"
+    _log ERROR "               stage-08 array tasks complete (see README)"
+    _log ERROR "In local mode:  the orchestrator runs this automatically when"
+    _log ERROR "               invoked with multiple subjects — run it that"
+    _log ERROR "               way rather than one subject per invocation, or"
+    _log ERROR "               run responsemean manually (see README)"
     exit 1
 fi
 

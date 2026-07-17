@@ -267,10 +267,18 @@ def resolve_slurm(toml_slurm: dict, env: dict, overrides: dict) -> dict[str, Any
 # ---------------------------------------------------------------------------
 
 def _bash_str(val: Any) -> str:
-    """Convert a Python value to a safely quoted bash string."""
+    """Convert a Python value to a safely quoted bash string.
+
+    Output is eval'd by dwiforge.sh (`eval "$(parse_config.py ...)"`), so a
+    value containing a single quote must not be able to close the quoted
+    string early — that would let arbitrary shell content following it be
+    evaluated. Escape by ending the quote, emitting an escaped quote, and
+    reopening: ' -> '\\''
+    """
     if isinstance(val, bool):
         return "true" if val else "false"
-    return f"'{str(val)}'"
+    escaped = str(val).replace("'", "'\\''")
+    return f"'{escaped}'"
 
 
 def emit_exports(

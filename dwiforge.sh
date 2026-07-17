@@ -317,6 +317,22 @@ STAGE_ORDER=(
     connectome-stats
 )
 
+# Split at the group barrier (response-functions -> responsemean -> tractography).
+# Used for two-pass local execution when multiple subjects share group responses:
+# every subject must finish PHASE1 before responsemean can run, and no subject
+# can start PHASE2 until responsemean has produced group response functions.
+STAGE_ORDER_PHASE1=("${STAGE_ORDER[@]:0:9}")   # qc-bids .. response-functions
+STAGE_ORDER_PHASE2=("${STAGE_ORDER[@]:9}")     # tractography .. connectome-stats
+
+# Does this run touch any stage that depends on group responses?
+_phase2_enabled() {
+    local stage
+    for stage in "${STAGE_ORDER_PHASE2[@]}"; do
+        _stage_enabled "$stage" && return 0
+    done
+    return 1
+}
+
 # Map stage name to DWIFORGE_RUN_* config variable
 declare -A STAGE_CONFIG_VAR=(
     [qc-bids]="DWIFORGE_RUN_QC_BIDS"
@@ -491,34 +507,65 @@ _run_stage() {
 
 _process_subject() {
     local sub="$1"
+    # phase: full (default) runs every stage; phase1/phase2 run only the
+    # stages on that side of the response-functions group barrier. Callers
+    # that need the barrier (multiple local subjects with any post-barrier
+    # stage enabled) run phase1 for every subject, call _run_responsemean
+    # once, then run phase2 for every subject that survived phase1. See
+    # main()'s local-processing section.
+    local phase="${2:-full}"
 
-    # Per-subject log file (all stages for this subject)
+    local stage_list=()
+    case "$phase" in
+        phase1) stage_list=("${STAGE_ORDER_PHASE1[@]}") ;;
+        phase2) stage_list=("${STAGE_ORDER_PHASE2[@]}") ;;
+        full)   stage_list=("${STAGE_ORDER[@]}") ;;
+        *)      log_sub "ERROR" "$sub" "Internal error: unknown phase '${phase}'"; return 1 ;;
+    esac
+
+    # Per-subject log file (all stages for this subject). The containing
+    # directory must exist before anything is logged — dirs_init() would
+    # normally create it, but that happens later, and logging to a
+    # nonexistent path fails. In sequential mode that failure was silently
+    # swallowed (calling _process_subject as an `if` condition suspends
+    # errexit for the whole call), but backgrounding it for parallel
+    # execution does not get that same accidental protection, so create the
+    # directory explicitly up front rather than relying on call-site quirks.
     local sub_log="${DWIFORGE_DIR_LOGS}/${sub}/subject.log"
+    mkdir -p "${DWIFORGE_DIR_LOGS}/${sub}"
     export DWIFORGE_LOG_FILE="$sub_log"
-    rotate_log "$sub_log"
+    # Only rotate at the start of a subject's first phase, so phase2 doesn't
+    # truncate the log phase1 just wrote.
+    [[ "$phase" != "phase2" ]] && rotate_log "$sub_log"
 
     log_sub "INFO" "$sub" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    log_sub "INFO" "$sub" "Starting subject processing"
-
-    # Validate source data exists
-    if [[ ! -d "${DWIFORGE_DIR_SOURCE}/${sub}/dwi" ]]; then
-        log_sub "ERROR" "$sub" "No DWI directory found: ${DWIFORGE_DIR_SOURCE}/${sub}/dwi"
-        return 1
+    if [[ "$phase" == "phase2" ]]; then
+        log_sub "INFO" "$sub" "Resuming subject processing (post-barrier stages)"
+    else
+        log_sub "INFO" "$sub" "Starting subject processing"
     fi
 
-    # Create directories
-    dirs_init "$sub" || return 1
+    # Validate source data exists (skip re-check on phase2 — already passed)
+    if [[ "$phase" != "phase2" ]]; then
+        if [[ ! -d "${DWIFORGE_DIR_SOURCE}/${sub}/dwi" ]]; then
+            log_sub "ERROR" "$sub" "No DWI directory found: ${DWIFORGE_DIR_SOURCE}/${sub}/dwi"
+            return 1
+        fi
 
-    # Check disk space (warns but does not abort)
-    disk_check_all "$sub"
+        # Create directories
+        dirs_init "$sub" || return 1
 
-    # Clear checkpoints if --rerun
-    [[ "$ARG_RERUN" == true ]] && checkpoint_clear_all "$sub"
+        # Check disk space (warns but does not abort)
+        disk_check_all "$sub"
+
+        # Clear checkpoints if --rerun
+        [[ "$ARG_RERUN" == true ]] && checkpoint_clear_all "$sub"
+    fi
 
     # Run stages in order
     local n_run=0 n_skip=0 stage_failed=false
 
-    for stage in "${STAGE_ORDER[@]}"; do
+    for stage in "${stage_list[@]}"; do
         if ! _stage_enabled "$stage"; then
             log_sub "DEBUG" "$sub" "Stage disabled: ${stage}"
             continue
@@ -542,25 +589,15 @@ _process_subject() {
         else
             (( n_run++ )) || true
         fi
-
-        # ---------------------------------------------------------------------------
-        # Group barrier: after response-functions, wait for all subjects then average
-        # ---------------------------------------------------------------------------
-        # This barrier only fires in sequential/local mode. In SLURM array mode,
-        # the orchestrator submits responsemean as a separate job with dependency
-        # on all stage 08 array tasks completing (handled in slurm_example.sh).
-        if [[ "$stage" == "response-functions" &&               "${DWIFORGE_MODE:-local}" == "local" &&               "${DWIFORGE_LAST_SUBJECT:-false}" == "true" ]]; then
-            log "INFO" "All subjects completed stage 08 — running responsemean"
-            if ! _run_responsemean; then
-                log "ERROR" "responsemean failed — stage 09 cannot run"
-                stage_failed=true
-                break
-            fi
-        fi
     done
 
-    # Cleanup
-    cleanup_subject "$sub" "${DWIFORGE_CLEANUP_TIER:-0}"
+    # Cleanup only once the subject has finished its final requested phase —
+    # phase1 output (e.g. dwi_preprocessed.mif, per-subject responses) is
+    # still needed by phase2, so don't clean up until phase2 (or a full,
+    # single-pass run) completes.
+    if [[ "$phase" != "phase1" ]]; then
+        cleanup_subject "$sub" "${DWIFORGE_CLEANUP_TIER:-0}"
+    fi
 
     unset DWIFORGE_LOG_FILE
 
@@ -571,6 +608,67 @@ _process_subject() {
 
     log_sub "OK" "$sub" "All stages complete (${n_run} run, ${n_skip} skipped)"
     return 0
+}
+
+# ---------------------------------------------------------------------------
+# Batch execution — runs a list of subjects through one phase, sequentially
+# or in parallel, with correct per-subject success/failure accounting.
+# ---------------------------------------------------------------------------
+# Populates the caller's BATCH_OK / BATCH_FAILED arrays (declare -a in the
+# caller before invoking). Does not touch n_success/n_fail/failed_subjects
+# directly so it can be called more than once per run (phase1, then phase2).
+#
+# Parallel execution runs in fixed-size batches of ${parallel} subjects:
+# each batch is fully launched, then every PID in that batch is waited on
+# individually so its real exit code is captured (bash has no portable way
+# to learn *which* job `wait -n` just reaped, so a rolling window can't
+# attribute exit codes to subjects — fixed batches sidestep that).
+_run_subject_batch() {
+    local phase="$1"; shift
+    local -a subjects=("$@")
+
+    BATCH_OK=()
+    BATCH_FAILED=()
+
+    local parallel="${DWIFORGE_PARALLEL_SUBJECTS:-1}"
+    local n=${#subjects[@]}
+
+    if [[ "$n" -eq 0 ]]; then
+        return 0
+    fi
+
+    if [[ "$parallel" -gt 1 ]]; then
+        local i=0
+        while [[ $i -lt $n ]]; do
+            local -a batch_pids=()
+            declare -A batch_subs=()
+            local batch_end=$(( i + parallel > n ? n : i + parallel ))
+            for (( ; i < batch_end; i++ )); do
+                local sub="${subjects[$i]}"
+                _process_subject "$sub" "$phase" &
+                local pid=$!
+                batch_pids+=("$pid")
+                batch_subs["$pid"]="$sub"
+            done
+            local pid
+            for pid in "${batch_pids[@]}"; do
+                if wait "$pid"; then
+                    BATCH_OK+=("${batch_subs[$pid]}")
+                else
+                    BATCH_FAILED+=("${batch_subs[$pid]}")
+                fi
+            done
+        done
+    else
+        local sub
+        for sub in "${subjects[@]}"; do
+            if _process_subject "$sub" "$phase"; then
+                BATCH_OK+=("$sub")
+            else
+                BATCH_FAILED+=("$sub")
+            fi
+        done
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -711,28 +809,65 @@ main() {
         log "INFO" "Parallel mode: up to ${parallel} subjects simultaneously"
     fi
 
-    local active_jobs=0
-    for sub in "${SUBJECTS[@]}"; do
-        if [[ "$parallel" -gt 1 ]]; then
-            # Background each subject; track pids
-            _process_subject "$sub" &
-            (( active_jobs++ )) || true
-            if [[ "$active_jobs" -ge "$parallel" ]]; then
-                wait -n 2>/dev/null || wait
-                (( active_jobs-- )) || true
-            fi
-        else
-            if _process_subject "$sub"; then
+    declare -a BATCH_OK BATCH_FAILED
+
+    if [[ "$n_total" -gt 1 ]] && _phase2_enabled; then
+        # Group barrier required: stages 09-11 need group-averaged response
+        # functions (stage 08, all subjects) before any subject can run them.
+        # Running every subject through the full pipeline one at a time (the
+        # old single-pass loop) would let subject 1 reach tractography before
+        # subject 2 has even started — so this splits into two passes with
+        # responsemean run once, in between, across all subjects.
+        log "INFO" "Multiple subjects with post-response-functions stages enabled"
+        log "INFO" "Running in two passes: (1) qc-bids..response-functions, responsemean, (2) tractography..connectome-stats"
+
+        log "INFO" "── Pass 1/2: qc-bids .. response-functions ──"
+        _run_subject_batch "phase1" "${SUBJECTS[@]}"
+        local -a phase1_ok=("${BATCH_OK[@]}")
+        for sub in "${BATCH_FAILED[@]}"; do
+            (( n_fail++ )) || true
+            failed_subjects+=("$sub")
+        done
+
+        if [[ ${#phase1_ok[@]} -eq 0 ]]; then
+            log "ERROR" "No subjects completed pass 1 — skipping responsemean and pass 2"
+        elif [[ "$ARG_DRY_RUN" == true ]]; then
+            log "INFO" "[dry-run] Would run responsemean, then pass 2 for: ${phase1_ok[*]}"
+            for sub in "${phase1_ok[@]}"; do
                 (( n_success++ )) || true
+            done
+        else
+            log "INFO" "All subjects that reached stage 08 completed it — running responsemean"
+            if ! _run_responsemean; then
+                log "ERROR" "responsemean failed — pass 2 (tractography onward) cannot run"
+                for sub in "${phase1_ok[@]}"; do
+                    (( n_fail++ )) || true
+                    failed_subjects+=("$sub")
+                done
             else
-                (( n_fail++ )) || true
-                failed_subjects+=("$sub")
+                log "INFO" "── Pass 2/2: tractography .. connectome-stats ──"
+                _run_subject_batch "phase2" "${phase1_ok[@]}"
+                for sub in "${BATCH_OK[@]}"; do
+                    (( n_success++ )) || true
+                done
+                for sub in "${BATCH_FAILED[@]}"; do
+                    (( n_fail++ )) || true
+                    failed_subjects+=("$sub")
+                done
             fi
         fi
-    done
-
-    # Wait for any remaining background jobs
-    [[ "$parallel" -gt 1 ]] && wait
+    else
+        # Single subject, or no post-barrier stage enabled — no group
+        # dependency to coordinate, so run every stage in one pass per subject.
+        _run_subject_batch "full" "${SUBJECTS[@]}"
+        for sub in "${BATCH_OK[@]}"; do
+            (( n_success++ )) || true
+        done
+        for sub in "${BATCH_FAILED[@]}"; do
+            (( n_fail++ )) || true
+            failed_subjects+=("$sub")
+        done
+    fi
 
     # Final summary
     log "INFO" "═══════════════════════════════════════"
