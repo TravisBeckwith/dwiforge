@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stages/05_tensor_fitting.sh — Tensor and diffusion model fitting
+# stages/06_tensor_fitting.sh — Tensor and diffusion model fitting
 # =============================================================================
 # Fits diffusion models to the preprocessed DWI using tmi (DESIGNER-v2).
 #
