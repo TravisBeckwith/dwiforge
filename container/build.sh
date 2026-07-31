@@ -8,8 +8,8 @@
 #   bash container/build.sh [options]
 #
 # Options:
-#   --tag TAG             Docker image tag (default: dwiforge:2.0)
-#   --sif PATH            Output .sif path (default: dwiforge_2.0.sif)
+#   --tag TAG             Docker image tag (default: dwiforge:2.1)
+#   --sif PATH            Output .sif path (default: dwiforge_2.1.sif)
 #   --skip-docker         Skip Docker build (use existing image)
 #   --skip-sif            Skip Apptainer conversion
 #   --push-sif HOST:PATH  SCP the .sif to an HPC after building
@@ -28,8 +28,8 @@
 set -euo pipefail
 
 # ---- Defaults ----
-TAG="dwiforge:2.0"
-SIF="dwiforge_2.0.sif"
+TAG="dwiforge:2.1"
+SIF="dwiforge_2.1.sif"
 SKIP_DOCKER=false
 SKIP_SIF=false
 PUSH_HOST=""

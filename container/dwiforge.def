@@ -4,16 +4,16 @@
 # without going through Docker.
 #
 # BUILD (requires sudo or fakeroot)
-#   apptainer build --fakeroot dwiforge_2.0.sif container/dwiforge.def
+#   apptainer build --fakeroot dwiforge_2.1.sif container/dwiforge.def
 #
 # For most HPC use, prefer the Docker → Apptainer conversion workflow:
 #   (on local machine with Docker)
-#   docker build -t dwiforge:2.0 -f container/Dockerfile .
-#   docker save dwiforge:2.0 | gzip > dwiforge_2.0.tar.gz
-#   scp dwiforge_2.0.tar.gz hpc:/path/to/images/
+#   docker build -t dwiforge:2.1 -f container/Dockerfile .
+#   docker save dwiforge:2.1 | gzip > dwiforge_2.1.tar.gz
+#   scp dwiforge_2.1.tar.gz hpc:/path/to/images/
 #
 #   (on HPC)
-#   apptainer build dwiforge_2.0.sif docker-archive://dwiforge_2.0.tar.gz
+#   apptainer build dwiforge_2.1.sif docker-archive://dwiforge_2.1.tar.gz
 #
 # RUN ON HPC (Apptainer)
 #   apptainer run \
@@ -22,7 +22,7 @@
 #     --bind /scratch:/scratch \
 #     --bind /path/to/license.txt:/opt/freesurfer/license.txt:ro \
 #     --nv \
-#     dwiforge_2.0.sif \
+#     dwiforge_2.1.sif \
 #     --config /data/bids/dwiforge.toml \
 #     --subject sub-001
 #
@@ -106,14 +106,14 @@ From: nyudiffusionmri/designer:latest
 
 %labels
     Author dwiforge
-    Version 2.0
+    Version 2.1
     Description dwiforge DWI preprocessing pipeline
 
 %help
     dwiforge v2 — DWI/DTI preprocessing pipeline
 
     Usage:
-      apptainer run dwiforge_2.0.sif [OPTIONS]
+      apptainer run dwiforge_2.1.sif [OPTIONS]
 
     Required bind mounts:
       --bind /data/bids:/data/bids:ro           BIDS input directory
@@ -136,4 +136,4 @@ From: nyudiffusionmri/designer:latest
         --bind /data/output:/data/output \
         --bind ~/freesurfer_license.txt:/opt/freesurfer/license.txt:ro \
         --nv \
-        dwiforge_2.0.sif --all --config /data/bids/dwiforge.toml
+        dwiforge_2.1.sif --all --config /data/bids/dwiforge.toml

@@ -8,7 +8,7 @@
 #   docker build \
 #     --build-arg FREESURFER_VERSION=7.4.1 \
 #     --build-arg DESIGNER_TAG=latest \
-#     -t dwiforge:2.0 \
+#     -t dwiforge:2.1 \
 #     -f container/Dockerfile .
 #
 # RUN (local)
@@ -17,11 +17,11 @@
 #     -v /data/output:/data/output \
 #     -v /path/to/license.txt:/opt/freesurfer/license.txt:ro \
 #     [--gpus all] \
-#     dwiforge:2.0 --config /data/bids/dwiforge.toml --subject sub-001
+#     dwiforge:2.1 --config /data/bids/dwiforge.toml --subject sub-001
 #
 # CONVERT TO APPTAINER
-#   docker save dwiforge:2.0 | gzip > dwiforge_2.0.tar.gz
-#   apptainer build dwiforge_2.0.sif docker-archive://dwiforge_2.0.tar.gz
+#   docker save dwiforge:2.1 | gzip > dwiforge_2.1.tar.gz
+#   apptainer build dwiforge_2.1.sif docker-archive://dwiforge_2.1.tar.gz
 #
 # FREESURFER LICENSE
 #   The license.txt is NOT baked into the image (redistribution prohibited).
