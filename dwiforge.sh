@@ -191,9 +191,23 @@ _load_config() {
     [[ -n "$ARG_PARALLEL" ]]    && parse_args+=(--parallel-subjects "$ARG_PARALLEL")
     [[ "$ARG_NO_GPU" == true ]] && parse_args+=(--no-gpu)
     [[ "$ARG_CHECK_SPACE" == true ]] && parse_args+=(--check-space)
+    if [[ "$ARG_ML_QUICK" == true ]]; then
+        parse_args+=(--ml-quick-mode)
+    elif [[ "$ARG_ML_QUICK" == false ]]; then
+        parse_args+=(--ml-full-mode)
+    fi
 
-    # Evaluate the exports — this populates all DWIFORGE_* variables
-    eval "$("${parse_args[@]}")"
+    # Evaluate the exports — this populates all DWIFORGE_* variables.
+    # Capture output separately from exit status: eval's own exit status
+    # reflects whether the captured string evaluated cleanly, not whether
+    # parse_config.py itself succeeded, so a config error would otherwise
+    # be silently swallowed here and surface later as a confusing
+    # "unbound variable" failure instead.
+    local resolved
+    if ! resolved="$("${parse_args[@]}")"; then
+        exit 1
+    fi
+    eval "$resolved"
 }
 
 _show_config() {
