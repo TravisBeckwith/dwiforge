@@ -79,7 +79,7 @@ env "PYTHONPATH=${DWIFORGE_DEPS_DIR}:${PYTHONPATH:-}" \
     --capability_json "$CAPABILITY_JSON" \
     --work_dir        "$WORK" \
     --output          "$REPORT_PDF" \
-    --pipeline_version "${DWIFORGE_VERSION:-2.0}"
+    --pipeline_version "${DWIFORGE_VERSION:-2.1}"
 
 if [[ ! -f "$REPORT_PDF" ]]; then
     _log ERROR "QC report not generated: ${REPORT_PDF}"
