@@ -129,6 +129,10 @@ _OPTION_DEFAULTS = {
     "run_connectivity":      True,
     "run_qc_report":         True,
     "run_connectome_stats":  True,
+    # GNC defaults to off — it requires a vendor-supplied gradient
+    # coefficient file most users won't have. See stages/12_gnc.sh.
+    "run_gnc":               False,
+    "gnc_coeff_file":        "",
     "connectome_stats_mode":       "matrix",
     "connectome_stats_delta_frac": 0.5,
     "ml_method":             "auto",
