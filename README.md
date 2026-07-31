@@ -4,6 +4,8 @@
 
 A modular, checkpoint-based diffusion MRI preprocessing and analysis pipeline for single-shell and multi-shell acquisitions. Designed for any BIDS-compliant dataset.
 
+See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
+
 ## Pipeline Stages
 
 | Stage | Name | Description |
@@ -14,6 +16,7 @@ A modular, checkpoint-based diffusion MRI preprocessing and analysis pipeline fo
 | 03 | T1w Prep | Reorientation → N4 bias correction → SynthStrip skull-stripping |
 | 04 | EPI Correction | Synb0-DisCo synthetic b0 → topup field estimation |
 | 05 | DESIGNER | topup + eddy + Rician denoising (DESIGNER2) |
+| 12 | GNC *(optional, off by default)* | Gradient nonlinearity correction — spatial distortion only, see `stages/12_gnc.sh` |
 | 06 | Tensor Fitting | DTI via tmi (DESIGNER2); FA, MD, AD, RD, eigenvectors |
 | 07 | NODDI | AMICO 2.x NODDI fitting; NDI, ODI, ISOVF |
 | 08 | Response Functions | dhollander 3-tissue response estimation |
@@ -36,6 +39,13 @@ A modular, checkpoint-based diffusion MRI preprocessing and analysis pipeline fo
   - DESIGNER2 (`designer2`, `tmi`)
   - AMICO 2.x
   - dipy ≥ 1.12, nibabel, matplotlib, scipy
+- **gradunwarp** (`gradient_unwarp.py`) — optional, only needed if `run_gnc = true`:
+  ```bash
+  pip install git+https://github.com/Washington-University/gradunwarp.git
+  ```
+  Also requires a vendor-supplied gradient coefficient file (e.g. Siemens
+  `coeff.grad`), obtained from your site physicist or scanner vendor — not
+  redistributable, so it isn't bundled here.
 
 See `env/DEPENDENCIES.md` and `env/Environment_Instructions.md` for full setup.
 
@@ -124,5 +134,6 @@ DWIForge v2 (2026). Zenodo. https://doi.org/10.5281/zenodo.19740322
 | 08–09 | SS3T-CSD | Dhollander et al. (2016) ISMRM; Dell'Acqua & Tournier (2019) *NMR Biomed* 32(4):e3997 |
 | 09 | iFOD2 / ACT | Smith et al. (2012) *NeuroImage* 62(3):1924–1938 |
 | 09 | SIFT2 | Smith et al. (2015) *NeuroImage* 119:338–351 |
+| 12 | gradunwarp (GNC) | Glasser et al. (2013) *NeuroImage* 80:105–124 (HCP Pipelines, gradient nonlinearity correction) |
 | 01, 09 | FreeSurfer | Fischl (2012) *NeuroImage* 62(2):774–781 |
 | 11 | CLR / CoDa | Aitchison (1982) *J. R. Stat. Soc. B* 44(2):139–177; Pawlowsky-Glahn et al. (2015) *Modeling and Analysis of Compositional Data*, Wiley |

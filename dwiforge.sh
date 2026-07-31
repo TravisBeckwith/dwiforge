@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # dwiforge.sh — DWI Processing Pipeline Orchestrator
-# Version 2.0
+# Version 2.1
 #
 # Usage:
 #   ./dwiforge.sh [options]
@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-DWIFORGE_VERSION="2.0"
+DWIFORGE_VERSION="2.1"
 DWIFORGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---------------------------------------------------------------------------
