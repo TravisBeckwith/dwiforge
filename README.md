@@ -1,6 +1,6 @@
-# DWIForge v2
+# DWIForge v2.1
 
-[![DOI](https://zenodo.org/badge/1161170233.svg)](https://doi.org/10.5281/zenodo.19740322)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21727199.svg)](https://doi.org/10.5281/zenodo.21727199)
 
 A modular, checkpoint-based diffusion MRI preprocessing and analysis pipeline for single-shell and multi-shell acquisitions. Designed for any BIDS-compliant dataset.
 
