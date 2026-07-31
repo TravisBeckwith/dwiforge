@@ -122,6 +122,17 @@ run_qc_report       = true
 # block downstream processing if disabled or if it fails.
 run_connectome_stats = true
 
+# Stage 12: gradient nonlinearity correction (GNC) for DWI. Corrects spatial
+# distortion from gradient coil nonlinearity — most relevant on
+# high-gradient-strength systems. Off by default: requires a vendor-supplied
+# gradient coefficient file (not redistributable — get yours from your site
+# physicist or scanner vendor) and gradient_unwarp.py on PATH. Degrades
+# gracefully (skips, does not fail the pipeline) if either is missing.
+# NOTE: corrects voxel positions only, not the per-voxel b-matrix — see
+# stages/12_gnc.sh header for the full scope/limitation note.
+run_gnc        = false
+gnc_coeff_file = ""   # e.g. "/path/to/coeff.grad"
+
 # Compositional unit for the Stage 11 CLR transform:
 #   "matrix" — treat the whole connectome (unique upper-triangle edges) as
 #              one composition. Preserves symmetry. Recommended default.
