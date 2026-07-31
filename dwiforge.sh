@@ -309,6 +309,7 @@ declare -A STAGE_SCRIPTS=(
     [t1w-prep]="stages/03_t1w_prep.sh"
     [epi-correction]="stages/04_epi_correction.sh"
     [designer]="stages/05_designer.sh"
+    [gnc]="stages/12_gnc.sh"
     [tensor-fitting]="stages/06_tensor_fitting.sh"
     [noddi]="stages/07_noddi.sh"
     [response-functions]="stages/08_response_functions.sh"
@@ -323,6 +324,7 @@ STAGE_ORDER=(
     t1w-prep
     epi-correction
     designer
+    gnc
     tensor-fitting
     noddi
     response-functions
@@ -335,8 +337,8 @@ STAGE_ORDER=(
 # Used for two-pass local execution when multiple subjects share group responses:
 # every subject must finish PHASE1 before responsemean can run, and no subject
 # can start PHASE2 until responsemean has produced group response functions.
-STAGE_ORDER_PHASE1=("${STAGE_ORDER[@]:0:9}")   # qc-bids .. response-functions
-STAGE_ORDER_PHASE2=("${STAGE_ORDER[@]:9}")     # tractography .. connectome-stats
+STAGE_ORDER_PHASE1=("${STAGE_ORDER[@]:0:10}")  # qc-bids .. response-functions
+STAGE_ORDER_PHASE2=("${STAGE_ORDER[@]:10}")    # tractography .. connectome-stats
 
 # Does this run touch any stage that depends on group responses?
 _phase2_enabled() {
@@ -355,6 +357,7 @@ declare -A STAGE_CONFIG_VAR=(
     [t1w-prep]="DWIFORGE_RUN_T1W_PREP"
     [epi-correction]="DWIFORGE_RUN_EPI_CORRECTION"
     [designer]="DWIFORGE_RUN_DESIGNER"
+    [gnc]="DWIFORGE_RUN_GNC"
     [tensor-fitting]="DWIFORGE_RUN_TENSOR_FITTING"
     [noddi]="DWIFORGE_RUN_NODDI"
     [response-functions]="DWIFORGE_RUN_RESPONSE_FUNCTIONS"
