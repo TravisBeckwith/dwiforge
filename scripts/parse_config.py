@@ -385,6 +385,12 @@ def build_parser() -> argparse.ArgumentParser:
                     action="store_true", default=None)
     og.add_argument("--no-gpu", dest="use_gpu",
                     action="store_false")
+    og.add_argument("--ml-quick-mode", dest="ml_quick_mode",
+                    action="store_true", default=None,
+                    help="Use fast approximate registration (default)")
+    og.add_argument("--ml-full-mode", dest="ml_quick_mode",
+                    action="store_false",
+                    help="Use full dense displacement registration")
 
     return p
 
@@ -425,6 +431,8 @@ def main() -> None:
         option_overrides["parallel_subjects"] = args.parallel_subjects
     if args.use_gpu is not None:
         option_overrides["use_gpu"] = args.use_gpu
+    if args.ml_quick_mode is not None:
+        option_overrides["ml_quick_mode"] = args.ml_quick_mode
 
     # --- Resolve ---
     paths   = resolve_paths(toml_paths, os.environ, path_overrides)
