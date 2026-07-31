@@ -31,7 +31,7 @@ from typing import Any
 warnings.filterwarnings("ignore")
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 
-DWIFORGE_VERSION = os.environ.get("DWIFORGE_VERSION", "2.0")
+DWIFORGE_VERSION = os.environ.get("DWIFORGE_VERSION", "2.1")
 
 # ---------------------------------------------------------------------------
 # Direction / capability thresholds

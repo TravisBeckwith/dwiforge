@@ -85,7 +85,7 @@ def parse_args():
     p.add_argument('--capability_json',  required=True)
     p.add_argument('--work_dir',         required=True)
     p.add_argument('--output',           required=True)
-    p.add_argument('--pipeline_version', default='2.0')
+    p.add_argument('--pipeline_version', default='2.1')
     return p.parse_args()
 
 
