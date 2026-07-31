@@ -40,6 +40,9 @@ dependencies:
   # If conda-forge does not yet have 1.12, install via pip (see pip block below)
   - dipy>=1.12.0
 
+  # ── QC report plotting ──────────────────────────────────────
+  - matplotlib>=3.7
+
   # ── PyTorch — optional, for full-mode registration ──────────
   # CPU-only version:
   # - pytorch>=2.0
@@ -67,4 +70,3 @@ variables:
   TF_CPP_MIN_LOG_LEVEL: "3"
   PYTHONWARNINGS: "ignore"
   PYTHONIOENCODING: "UTF-8"
-  - matplotlib>=3.7
