@@ -213,13 +213,12 @@ venv_path = ""
 extra_directives = ""
 
 [designer]
-# Path to the designer binary. Empty = auto-detect from ~/.local/bin/designer.
-bin = ""
-
-# Path to directory containing MRtrix3 Python bindings (mrtrix3/ package).
-# Auto-detected from the location of mrconvert if empty.
-# Example: "/home/user/mrtrix3/lib"
-python_path = ""
+# NOTE: designer binary / MRtrix3 Python bindings paths are configured
+# under [runtime] (designer_bin, designer_python_path below) — not here.
+# This section previously had its own bin/python_path keys that looked
+# equivalent but were never actually read by any code path; they've been
+# removed to avoid the confusion of two config locations doing the same
+# thing, only one of which worked.
 
 # Phase encoding direction for FSL eddy.
 # Read from JSON sidecar / .mif header if empty.

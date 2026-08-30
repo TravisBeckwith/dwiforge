@@ -697,6 +697,11 @@ def check_acquisition(
             acq["phase_encoding_direction"] = pe_dir
             acq["phase_encoding_axis"]      = pe_dir.replace("-", "") if pe_dir else None
 
+            # Scanner metadata (BIDS standard fields). Not required for any
+            # processing decision, but used in the QC report header.
+            acq["manufacturer"]              = sidecar.get("Manufacturer", "")
+            acq["magnetic_field_strength"]   = sidecar.get("MagneticFieldStrength", "")
+
             # TotalReadoutTime: BIDS standard.
             # Philips dcm2niix writes EstimatedTotalReadoutTime instead.
             acq["total_readout_time"] = (
@@ -777,13 +782,23 @@ def check_acquisition(
             elif mr_acq_type == "2D":
                 acq["acquisition_3d"] = False
             else:
-                # Heuristic: 3D EPI typically lacks SliceTiming
-                acq["acquisition_3d"] = not acq["slice_timing_available"]
-                if acq["acquisition_3d"]:
-                    result.info(
-                        "MRAcquisitionType not in sidecar — inferred 3D acquisition "
-                        "from absent SliceTiming. Verify with scanner protocol."
-                    )
+                # Heuristic fallback when MRAcquisitionType is absent.
+                # SliceTiming absence is NOT a reliable 3D signal for DWI:
+                # unlike fMRI, slice-timing correction isn't typically
+                # applied to diffusion data, so DWI sidecars routinely omit
+                # SliceTiming even for standard 2D multi-slice EPI (the
+                # overwhelming majority of real-world DWI acquisitions).
+                # Default to 2D when uncertain rather than 3D, since a
+                # false "3D" call previously caused downstream stages to
+                # request a 3D-specific correction mode that many MRtrix3
+                # builds don't even support.
+                acq["acquisition_3d"] = False
+                result.info(
+                    "MRAcquisitionType not in sidecar — defaulting to 2D "
+                    "(standard for DWI regardless of SliceTiming presence). "
+                    "Verify with scanner protocol if this acquisition is "
+                    "actually 3D-encoded."
+                )
 
             # Check that we resolved PE direction and readout time
             # (either from BIDS standard keys or Philips fallback keys)

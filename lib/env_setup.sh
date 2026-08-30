@@ -180,14 +180,18 @@ setup_designer() {
     fi
 
     # ---- Locate designer binary ----
+    # Priority order (highest to lowest): explicit config override,
+    # active virtualenv, default ~/.local/bin location, common venv
+    # names, PATH. An earlier version of this logic prepended the active
+    # virtualenv's binary ahead of the explicit config override, silently
+    # reversing the stated priority — fixed by appending in order instead.
     local candidates=(
         "${DWIFORGE_DESIGNER_BIN:-}"
-        "${HOME}/.local/bin/designer"
     )
-    # Check active virtualenv bin first (highest priority after explicit config)
     if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/designer" ]]; then
-        candidates=("${VIRTUAL_ENV}/bin/designer" "${candidates[@]}")
+        candidates+=("${VIRTUAL_ENV}/bin/designer")
     fi
+    candidates+=("${HOME}/.local/bin/designer")
     # Common virtualenv locations
     for venv_name in neuroimaging_env dwiforge_env mrtrix_env; do
         local venv_candidate="${HOME}/${venv_name}/bin/designer"
