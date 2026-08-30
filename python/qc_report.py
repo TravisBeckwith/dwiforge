@@ -181,18 +181,30 @@ def render_header(pdf: PdfPages, sub: str, cap: dict, version: str):
 
     # Acquisition summary (right side)
     acq = cap.get('acquisition', {})
+    data = cap.get('data', {})
     shells = cap.get('shells', {})
     b_vals = shells.get('b_values', [])
-    n_dirs = cap.get('n_dwi', '?')
-    pe_dir = acq.get('phase_encoding_direction', acq.get('phase_encoding_axis', '?'))
+    n_dirs = data.get('n_dwi', 'Unknown')
+    pe_dir = acq.get('phase_encoding_direction', acq.get('phase_encoding_axis')) or 'Unknown'
     single = shells.get('is_single_shell', True)
     shell_str = f"{'Single' if single else 'Multi'}-shell: b={b_vals}"
+
+    manufacturer = acq.get('manufacturer') or ''
+    field_strength = acq.get('magnetic_field_strength')
+    if manufacturer and field_strength:
+        scanner_str = f"{manufacturer} {field_strength}T"
+    elif manufacturer:
+        scanner_str = manufacturer
+    elif field_strength:
+        scanner_str = f"{field_strength}T"
+    else:
+        scanner_str = "Unknown"
 
     info_lines = [
         f"b-values: {b_vals}",
         f"DWI dirs: {n_dirs}",
         f"PE dir: {pe_dir}",
-        f"Scanner: {acq.get('manufacturer', '?')} {acq.get('magnetic_field_strength', '')}T",
+        f"Scanner: {scanner_str}",
     ]
     for i, line in enumerate(info_lines):
         ax.text(0.65, 0.80 - i * 0.18, line,
@@ -561,7 +573,14 @@ def render_connectome(pdf: PdfPages, cap: dict):
             fa_mat = np.loadtxt(fa_csv, delimiter=',')
             fa_upper = fa_mat[np.triu_indices(n_nodes, k=1)]
             fa_upper = fa_upper[fa_upper > 0]
-            fa_stats = f"\nMean edge FA:  {np.mean(fa_upper):.3f} ± {np.std(fa_upper):.3f}"
+            if fa_upper.size > 0:
+                fa_stats = f"\nMean edge FA:  {np.mean(fa_upper):.3f} ± {np.std(fa_upper):.3f}"
+            else:
+                # File exists and loaded, but no edge had a positive mean-FA
+                # value. This usually indicates a problem upstream in the
+                # FA-scaled tck2connectome step, not a display issue — worth
+                # checking the tractography log rather than assuming FA=0.
+                fa_stats = "\nMean edge FA:  no valid edges (check tractography log)"
         except Exception:
             pass
 

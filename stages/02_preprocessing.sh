@@ -330,10 +330,20 @@ print(d.get('acquisition', {}).get('partial_fourier_fraction', 'unknown'))
         -force
     )
 
-    # 3D mode for volumetrically encoded acquisitions
+    # 3D mode for volumetrically encoded acquisitions.
+    # NOTE: -mode 3d is not present in all MRtrix3 builds (confirmed absent
+    # in mainline 3.0.x as of this writing — mrdegibbs -help lists only
+    # -axes, -nshifts, -minW, -maxW). Probe for actual support before using
+    # it rather than trusting capability.json's recommendation blindly;
+    # otherwise this crashes with "unknown option -mode" on affected builds.
     if [[ "$GIBBS_METHOD" == "mrdegibbs_3d" ]]; then
-        DEGIBBS_CMD+=(-mode 3d)
-        _log INFO "  Using 3D volume-wise mode"
+        if mrdegibbs -help 2>&1 | grep -q -- '-mode'; then
+            DEGIBBS_CMD+=(-mode 3d)
+            _log INFO "  Using 3D volume-wise mode"
+        else
+            _log WARN "  mrdegibbs_3d recommended but this MRtrix3 build has no -mode option"
+            _log WARN "  Falling back to standard 2D slice-wise correction"
+        fi
     fi
 
     # IMPORTANT: mrdegibbs must run BEFORE any interpolation or motion correction.

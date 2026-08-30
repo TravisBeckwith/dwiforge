@@ -457,11 +457,27 @@ if [[ -f "$FA_MAP" && ! -f "$CONNECTOME_FA" ]]; then
     _log INFO "Step 10: Building mean-FA connectome"
 
     FA_SAMPLE="${TRACT_DIR}/fa_per_streamline.txt"
+    FA_SAMPLE_PERLINE="${TRACT_DIR}/fa_per_streamline_perline.txt"
 
-    # Convert FA NIfTI to .mif for mrconvert compatibility
+    # Convert FA NIfTI to .mif for mrconvert compatibility.
+    #
+    # IMPORTANT: fa_dti.nii (from stage 06) was fit within a white-matter
+    # mask; voxels outside that mask are NaN, not 0 (confirmed: ~92% of
+    # voxels are NaN in a typical subject). Streamlines are seeded at
+    # GM/WM boundaries (-seed_gmwmi in stage 09's tckgen call), so nearly
+    # every streamline's path touches at least one non-WM, NaN-valued
+    # voxel near its endpoints. tcksample's -stat_tck mean performs a
+    # naive average with no NaN-skipping, so a single NaN sample point
+    # poisons that streamline's entire reported value. Zero-fill NaN
+    # before sampling so non-WM segments of a streamline's path
+    # contribute 0 to the mean rather than corrupting it entirely. This
+    # is a simplification (it doesn't restrict sampling to only the
+    # WM-crossing portion of each streamline), but it is far closer to
+    # correct than the prior behaviour, where ~96% of streamlines came
+    # back as an outright NaN.
     FA_MIF="${TRACT_DIR}/fa.mif"
     if [[ ! -f "$FA_MIF" ]]; then
-        mrconvert "$FA_MAP" "$FA_MIF" -quiet -force
+        mrcalc "$FA_MAP" -isnan 0 "$FA_MAP" -if "$FA_MIF" -quiet -force
     fi
 
     # Sample FA along each streamline (mean per streamline)
@@ -476,12 +492,23 @@ if [[ -f "$FA_MAP" && ! -f "$CONNECTOME_FA" ]]; then
         -nthreads "$N_THREADS" \
         -force
 
+    # Reshape tcksample's output before use. Confirmed behaviour of this
+    # MRtrix3 build: -stat_tck mean writes all per-streamline values onto
+    # a single space-separated row (preceded by a comment header line),
+    # not one value per line. tck2connectome -scale_file expects one
+    # value per line, so passing the raw file directly causes it to read
+    # the entire dataset as a single malformed entry and leaves nearly
+    # every streamline effectively unscored. Strip the header and split
+    # the row onto individual lines; the resulting count should match
+    # the streamline count in $TRACKS.
+    tail -n +2 "$FA_SAMPLE" | tr -s ' ' '\n' | grep -v '^$' > "$FA_SAMPLE_PERLINE"
+
     # Build connectome using sampled FA values as edge weights
     tck2connectome \
         "$TRACKS" \
         "$PARCELLATION" \
         "$CONNECTOME_FA" \
-        -scale_file      "$FA_SAMPLE" \
+        -scale_file      "$FA_SAMPLE_PERLINE" \
         -stat_edge       mean \
         -tck_weights_in  "$SIFT2_WEIGHTS" \
         -symmetric \

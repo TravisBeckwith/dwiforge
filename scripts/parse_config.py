@@ -143,6 +143,7 @@ _OPTION_DEFAULTS = {
     "min_free_gb_output":    5,
     "min_free_gb_freesurfer":10,
     "parallel_subjects":     1,
+    "b0_threshold":          50,
 }
 
 _SLURM_DEFAULTS = {

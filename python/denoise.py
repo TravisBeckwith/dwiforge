@@ -245,11 +245,20 @@ def _compute_qc_metrics(
     b0_signal = float(b0_mean[brain_mask].mean()) if b0_mask.any() else float("nan")
     snr = b0_signal / noise_std if noise_std > 0 else float("nan")
 
-    # Percent signal change from denoising (mean absolute)
+    # Percent signal change from denoising.
+    # Uses a global ratio of sums (sum|residuals| / sum|original|) rather
+    # than a mean of per-voxel ratios. The per-voxel approach is unstable:
+    # individual voxel-volume signal values are routinely near-zero even
+    # within the brain mask (e.g. fast-diffusing tissue at high b-value
+    # loses most of its signal), and dividing by a near-zero denominator
+    # — even guarded by a small epsilon — produces exploding ratios that
+    # dominate the mean and inflate the result by orders of magnitude.
+    orig_masked = original[brain_mask]
+    resid_masked = residuals[brain_mask]
+    sum_orig = float(np.sum(np.abs(orig_masked)))
     pct_change = float(
-        np.mean(np.abs(residuals[brain_mask]) / (np.abs(original[brain_mask]) + 1e-6))
-        * 100
-    )
+        (np.sum(np.abs(resid_masked)) / sum_orig) * 100
+    ) if sum_orig > 0 else float("nan")
 
     return {
         "brain_voxels":      n_voxels,

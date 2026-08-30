@@ -291,7 +291,13 @@ if [[ ! -f "$FA_CHECK" ]]; then
 
     # Use DESIGNER_BIN's Python (same venv as designer2)
     # DESIGNER_BIN is already resolved and validated by env_setup.sh
-    TMI_PYTHON="$(dirname "${DESIGNER_BIN}")/python3"
+    # Use DESIGNER_BIN's Python (same venv as designer2).
+    # DESIGNER_BIN may be a symlink (e.g. into an isolated venv kept
+    # separate from the main pipeline env due to dipy version pinning —
+    # see env/requirements.txt). Resolve the real path before dirname, or
+    # this silently falls through to the wrong environment.
+    DESIGNER_BIN_REAL="$(readlink -f "${DESIGNER_BIN}" 2>/dev/null || echo "${DESIGNER_BIN}")"
+    TMI_PYTHON="$(dirname "${DESIGNER_BIN_REAL}")/python3"
     if [[ ! -x "$TMI_PYTHON" ]]; then
         # Fallback: derive from VIRTUAL_ENV or well-known path
         TMI_PYTHON="${VIRTUAL_ENV:-${HOME}/neuroimaging_env}/bin/python3"
@@ -345,10 +351,14 @@ fi
 # Verify key outputs exist
 # ---------------------------------------------------------------------------
 
-EXPECTED_METRICS=("fa" "md" "ad" "rd" "eigenvalues" "eigenvectors")
+# tmi naming: scalar DTI metrics get a model suffix (fa_dti.nii, md_dti.nii,
+# ...); eigenvalues/eigenvectors do not. See header comment above for the
+# full documented convention. A bare-filename check here would never match
+# any real tmi output and would false-positive on every successful run.
+EXPECTED_FILES=("fa_dti.nii" "md_dti.nii" "ad_dti.nii" "rd_dti.nii" "eigenvalues.nii" "eigenvectors.nii")
 MISSING=()
-for m in "${EXPECTED_METRICS[@]}"; do
-    [[ ! -f "${TMI_OUT_DIR}/${m}.nii" ]] && MISSING+=("$m")
+for f in "${EXPECTED_FILES[@]}"; do
+    [[ ! -f "${TMI_OUT_DIR}/${f}" ]] && MISSING+=("$f")
 done
 
 if [[ "${#MISSING[@]}" -gt 0 ]]; then
